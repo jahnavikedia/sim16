@@ -132,7 +132,8 @@ def _frame_info(snap, obj):
         info[current] = ("saved FP", "+-- %s(%d)" % (target_name, arg))
         info[current + 1] = ("return addr", "|")
         info[current + 2] = ("arg", "+--")
-        if saved_fp == 0x100 or not 0xA0 <= saved_fp < current:
+        # Caller frames sit at higher addresses (stack grows down), so stop unless FP increases.
+        if saved_fp == 0x100 or not current < saved_fp <= 0xFD:
             break
         current = saved_fp
     return info
@@ -158,9 +159,10 @@ def format_stack(snap, obj, prev=None):
             frame = "%-13s <- SP" % frame
         elif addr == fp:
             frame = "%-13s <- FP" % frame
-        lines.append("  %02X    %04X%s  %3d   %-22s%s" %
-                     (addr, snap["mem"][addr], _mark(_changed(snap, prev, "mem", addr)),
-                      snap["mem"][addr], contents, frame))
+        line = "  %02X    %04X%s  %3d   %-22s%s" % (
+            addr, snap["mem"][addr], _mark(_changed(snap, prev, "mem", addr)),
+            snap["mem"][addr], contents, frame)
+        lines.append(line.rstrip())
     if sp > 0xA0:
         lines.append("  A0-%02X (free)" % (sp - 1))
     return "\n".join(lines)
