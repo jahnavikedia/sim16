@@ -92,5 +92,5 @@ Give your finished pieces to Snehil (he assembles the PDFs).
 **Status (all files in `report/jahnavi/`):**
 - [x] Instruction encoding table: `encoding_table.md`
 - [x] ISA summary: `isa_summary.md`
-- [ ] CPU block diagram: drafted in `cpu_block_diagram.drawio`; still needs a review in draw.io and a PNG export
+- [x] CPU block diagram: `cpu_block_diagram.png` (source: `cpu_block_diagram.drawio`)
 - [ ] Execution-trace pages: waiting for integration (`output/factorial_trace.txt`, `output/power_trace.txt`)
