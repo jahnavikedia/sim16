@@ -69,10 +69,12 @@ tests/test_cpu.py:
 ```
 python3 -m unittest discover -s tests -v
 ```
-- [ ] All tests pass
-- [ ] Factorial: 29 steps, output 40320, memory 0x61 = 9D80
-- [ ] Power: 20 steps, output 64, memory 0x62 = 0040
-- [ ] Recursive: 52 steps, output 120, and the 5 stack snapshots match SPEC 9.3
+- [x] All tests pass (46 tests)
+- [x] Factorial: 29 steps, output 40320, memory 0x61 = 9D80
+- [x] Power: 20 steps, output 64, memory 0x62 = 0040
+- [x] Recursive: 52 steps, output 120, and the 5 stack snapshots match SPEC 9.3
+
+**Status:** `cpu.py` and `tests/test_cpu.py` are done and pushed to `main`.
 
 ---
 
@@ -86,3 +88,9 @@ python3 -m unittest discover -s tests -v
 | Execution-trace pages | Assignment 1 | After integration, copy step blocks from `output/factorial_trace.txt` and `output/power_trace.txt` into the doc in Consolas 8 pt | *Figure 3: Execution trace, 8! (steps 1–29)* |
 
 Give your finished pieces to Snehil (he assembles the PDFs).
+
+**Status (all files in `report/jahnavi/`):**
+- [x] Instruction encoding table: `encoding_table.md`
+- [x] ISA summary: `isa_summary.md`
+- [ ] CPU block diagram: drafted in `cpu_block_diagram.drawio`; still needs a review in draw.io and a PNG export
+- [ ] Execution-trace pages: waiting for integration (`output/factorial_trace.txt`, `output/power_trace.txt`)
