@@ -1,9 +1,67 @@
-"""printer.py -- SIM16 printer: all formatted output (grid, step blocks, segments, stack)
+"""Format SIM16 CPU snapshots for traces and program-layout reports.
 
-Owner   : Snehil
-Contract: see SPEC.md sections 7, 6.4
-Status  : TODO -- replace this stub with the real implementation.
+Owner: Snehil
+Contract: SPEC.md sections 7 and 6.4.
 """
+
+from isa import REG_NAMES, SEGMENTS, segment_of
+
+
+def _changed(snap, prev, key, index=None):
+    """Return whether a scalar or indexed snapshot value changed."""
+    if prev is None:
+        return False
+    current = snap[key] if index is None else snap[key][index]
+    before = prev[key] if index is None else prev[key][index]
+    return current != before
+
+
+def _mark(changed):
+    """Return the fixed-width change marker required by the contract."""
+    return "*" if changed else " "
+
+
+def format_registers(snap, prev=None):
+    """Return the two-line register and flag block for a snapshot."""
+    flags = snap["flags"]
+    line1 = "PC=%02X  IR=%04X  Z=%d N=%d" % (
+        snap["pc"], snap["ir"], flags["Z"], flags["N"]
+    )
+    values = []
+    for index, name in enumerate(REG_NAMES):
+        values.append("%s=%04X%s" % (
+            name, snap["regs"][index], _mark(_changed(snap, prev, "regs", index))
+        ))
+    return line1 + "\n" + " ".join(values).rstrip()
+
+
+def _rows(obj, full):
+    """Return memory-grid rows as (segment, row_address) pairs."""
+    rows = []
+    text_len = len(obj.get("text", []))
+    data_len = len(obj.get("data", []))
+    spans = [("TEXT", 0, text_len), ("DATA", 0x60, data_len)]
+    for name, base, count in spans:
+        if full:
+            count = 0x20
+        else:
+            count = max(1, count)
+        for row in range(base, base + count, 8):
+            rows.append((name, row))
+    rows.append(("HEAP", 0x80))
+    rows.extend([("STACK", 0xF0), ("STACK", 0xF8)])
+    if not full:
+        sp = obj.get("_sp_for_grid", 0x100)
+        if sp < 0xF0:
+            first = max(0xA0, (sp // 8) * 8)
+            for row in range(first, 0xF0, 8):
+                if ("STACK", row) not in rows:
+                    rows.insert(-2, ("STACK", row))
+    else:
+        rows = [(name, row) for name, lo, hi in SEGMENTS for row in range(lo, hi, 8)]
+    return rows
+
+
 def format_memory_grid(snap, prev=None, obj=None, full=False):
     """Return the compact or full memory grid for a snapshot."""
     obj = obj or {"text": [], "data": []}
