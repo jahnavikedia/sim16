@@ -423,6 +423,7 @@ int assemble(const char *const *lines, int n_lines, Program *prog, SimError *err
     }
     for (i = 0; i < DATA_SIZE; i++) {
         prog->data[i] = 0;
+        prog->data_line[i] = 0;
     }
 
     /* PASS 1: give every label its address */
@@ -487,6 +488,7 @@ int assemble(const char *const *lines, int n_lines, Program *prog, SimError *err
                 return asm_error(err, ERR_WORD_RANGE, i + 1, value, 0, "");
             }
             prog->data[prog->data_len] = (unsigned short)(value & WORD_MASK);
+            prog->data_line[prog->data_len] = i + 1;
             prog->data_len++;
         }
     }

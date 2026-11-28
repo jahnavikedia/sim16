@@ -16,5 +16,7 @@ int  is_alpha(char c);
 int  is_space(char c);
 char to_upper(char c);
 int  parse_number(const char *s, int *value);
+void text_append(char *dst, const char *src, int size);
+void text_append_int(char *dst, int value, int size);
 
 #endif

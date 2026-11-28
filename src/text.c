@@ -142,3 +142,41 @@ int parse_number(const char *s, int *value)
     *value = sign * result;
     return 0;
 }
+
+/*
+ * text_append: add src to the end of dst (dst holds size chars).
+ */
+void text_append(char *dst, const char *src, int size)
+{
+    int n = text_length(dst);
+    text_copy(dst + n, src, size - n);
+}
+
+/*
+ * text_append_int: add a decimal number to the end of dst.
+ * (Our own replacement for sprintf("%d"), which is not allowed.)
+ */
+void text_append_int(char *dst, int value, int size)
+{
+    char digits[12];
+    char tmp[13];
+    int n = 0, i = 0;
+
+    if (value < 0) {
+        tmp[i] = '-';
+        i++;
+        value = -value;
+    }
+    do {                                    /* digits come out last-first */
+        digits[n] = (char)('0' + value % 10);
+        n++;
+        value /= 10;
+    } while (value > 0);
+    while (n > 0) {                         /* reverse them */
+        n--;
+        tmp[i] = digits[n];
+        i++;
+    }
+    tmp[i] = '\0';
+    text_append(dst, tmp, size);
+}

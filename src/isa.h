@@ -151,6 +151,7 @@ typedef struct {
     Symbol symbols[MAX_SYMBOLS];        /* every label, in definition order */
     int n_symbols;
     int source_line[TEXT_SIZE];         /* source line of each text word */
+    int data_line[DATA_SIZE];           /* source line of each data word */
 } Program;
 
 #endif

@@ -1,0 +1,343 @@
+SIM16 CPU Simulator -- recursive  (mode: calls)
+==============================================================================
+ PROGRAM LOADED INTO MEMORY                                             step 0
+==============================================================================
+PC=00  IR=0000  Z=0 N=0
+R0=0000  R1=0000  R2=0000  R3=0000  R4=0000  R5=0000  FP=0100  SP=0100
+
+[TEXT]  0x00-0x5F   19 of 96 words used
+  ADDR  HEX    LABEL    INSTRUCTION
+  00    1960   main:    LD R1, n            <- PC
+  01    9900            PUSH R1
+  02    A807            CALL fact
+  03    5F01            ADDI SP, 1
+  04    2061            ST R0, result
+  05    B800            OUT R0
+  06    0000            HALT
+  07    29C2   fact:    LDR R1, [FP+2]
+  08    7102            CMPI R1, 2
+  09    9011            JN base
+  0A    6101            SUBI R1, 1
+  0B    9900            PUSH R1
+  0C    A807            CALL fact
+  0D    5F01            ADDI SP, 1
+  0E    29C2            LDR R1, [FP+2]
+  0F    5020            MUL R0, R1
+  10    B000            RET
+  11    1001   base:    LDI R0, 1
+  12    B000            RET
+  13-5F (unused)
+
+[DATA]  0x60-0x7F   2 of 32 words used
+  ADDR  HEX    NAME     VALUE
+  60    0005   n        5
+  61    0000   result   0
+  62-7F (unused)
+
+[HEAP]  0x80-0x9F
+  (empty -- program uses no dynamic memory)
+
+[STACK] 0xA0-0xFF   0 of 96 words used   SP=100  FP=100   (grows down)
+  (empty)
+  A0-FF (free)
+
+==============================================================================
+ AFTER CALL #1: fact(5)                                                 step 3
+==============================================================================
+PC=07  IR=A807  Z=0 N=0
+R0=0000  R1=0005* R2=0000  R3=0000  R4=0000  R5=0000  FP=00FD* SP=00FD*
+
+[TEXT]  0x00-0x5F   19 of 96 words used
+  ADDR  HEX    LABEL    INSTRUCTION
+  00    1960   main:    LD R1, n
+  01    9900            PUSH R1
+  02    A807            CALL fact
+  03    5F01            ADDI SP, 1
+  04    2061            ST R0, result
+  05    B800            OUT R0
+  06    0000            HALT
+  07    29C2   fact:    LDR R1, [FP+2]      <- PC
+  08    7102            CMPI R1, 2
+  09    9011            JN base
+  0A    6101            SUBI R1, 1
+  0B    9900            PUSH R1
+  0C    A807            CALL fact
+  0D    5F01            ADDI SP, 1
+  0E    29C2            LDR R1, [FP+2]
+  0F    5020            MUL R0, R1
+  10    B000            RET
+  11    1001   base:    LDI R0, 1
+  12    B000            RET
+  13-5F (unused)
+
+[DATA]  0x60-0x7F   2 of 32 words used
+  ADDR  HEX    NAME     VALUE
+  60    0005   n        5
+  61    0000   result   0
+  62-7F (unused)
+
+[HEAP]  0x80-0x9F
+  (empty -- program uses no dynamic memory)
+
+[STACK] 0xA0-0xFF   3 of 96 words used   SP=FD  FP=FD   (grows down)
+  ADDR  HEX    DEC   CONTENTS              FRAME
+  FD    0100*  256   saved FP              +-- fact(5)   <- SP, FP
+  FE    0003*    3   return addr           |
+  FF    0005*    5   arg                   +--
+  A0-FC (free)
+
+==============================================================================
+ AFTER CALL #2: fact(4)                                                 step 9
+==============================================================================
+PC=07  IR=A807  Z=0 N=0
+R0=0000  R1=0004* R2=0000  R3=0000  R4=0000  R5=0000  FP=00FA* SP=00FA*
+
+[TEXT]  0x00-0x5F   19 of 96 words used
+  ADDR  HEX    LABEL    INSTRUCTION
+  00    1960   main:    LD R1, n
+  01    9900            PUSH R1
+  02    A807            CALL fact
+  03    5F01            ADDI SP, 1
+  04    2061            ST R0, result
+  05    B800            OUT R0
+  06    0000            HALT
+  07    29C2   fact:    LDR R1, [FP+2]      <- PC
+  08    7102            CMPI R1, 2
+  09    9011            JN base
+  0A    6101            SUBI R1, 1
+  0B    9900            PUSH R1
+  0C    A807            CALL fact
+  0D    5F01            ADDI SP, 1
+  0E    29C2            LDR R1, [FP+2]
+  0F    5020            MUL R0, R1
+  10    B000            RET
+  11    1001   base:    LDI R0, 1
+  12    B000            RET
+  13-5F (unused)
+
+[DATA]  0x60-0x7F   2 of 32 words used
+  ADDR  HEX    NAME     VALUE
+  60    0005   n        5
+  61    0000   result   0
+  62-7F (unused)
+
+[HEAP]  0x80-0x9F
+  (empty -- program uses no dynamic memory)
+
+[STACK] 0xA0-0xFF   6 of 96 words used   SP=FA  FP=FA   (grows down)
+  ADDR  HEX    DEC   CONTENTS              FRAME
+  FA    00FD*  253   saved FP              +-- fact(4)   <- SP, FP
+  FB    000D*   13   return addr           |
+  FC    0004*    4   arg                   +--
+  FD    0100   256   saved FP              +-- fact(5)
+  FE    0003     3   return addr           |
+  FF    0005     5   arg                   +--
+  A0-F9 (free)
+
+==============================================================================
+ AFTER CALL #3: fact(3)                                                step 15
+==============================================================================
+PC=07  IR=A807  Z=0 N=0
+R0=0000  R1=0003* R2=0000  R3=0000  R4=0000  R5=0000  FP=00F7* SP=00F7*
+
+[TEXT]  0x00-0x5F   19 of 96 words used
+  ADDR  HEX    LABEL    INSTRUCTION
+  00    1960   main:    LD R1, n
+  01    9900            PUSH R1
+  02    A807            CALL fact
+  03    5F01            ADDI SP, 1
+  04    2061            ST R0, result
+  05    B800            OUT R0
+  06    0000            HALT
+  07    29C2   fact:    LDR R1, [FP+2]      <- PC
+  08    7102            CMPI R1, 2
+  09    9011            JN base
+  0A    6101            SUBI R1, 1
+  0B    9900            PUSH R1
+  0C    A807            CALL fact
+  0D    5F01            ADDI SP, 1
+  0E    29C2            LDR R1, [FP+2]
+  0F    5020            MUL R0, R1
+  10    B000            RET
+  11    1001   base:    LDI R0, 1
+  12    B000            RET
+  13-5F (unused)
+
+[DATA]  0x60-0x7F   2 of 32 words used
+  ADDR  HEX    NAME     VALUE
+  60    0005   n        5
+  61    0000   result   0
+  62-7F (unused)
+
+[HEAP]  0x80-0x9F
+  (empty -- program uses no dynamic memory)
+
+[STACK] 0xA0-0xFF   9 of 96 words used   SP=F7  FP=F7   (grows down)
+  ADDR  HEX    DEC   CONTENTS              FRAME
+  F7    00FA*  250   saved FP              +-- fact(3)   <- SP, FP
+  F8    000D*   13   return addr           |
+  F9    0003*    3   arg                   +--
+  FA    00FD   253   saved FP              +-- fact(4)
+  FB    000D    13   return addr           |
+  FC    0004     4   arg                   +--
+  FD    0100   256   saved FP              +-- fact(5)
+  FE    0003     3   return addr           |
+  FF    0005     5   arg                   +--
+  A0-F6 (free)
+
+==============================================================================
+ AFTER CALL #4: fact(2)                                                step 21
+==============================================================================
+PC=07  IR=A807  Z=0 N=0
+R0=0000  R1=0002* R2=0000  R3=0000  R4=0000  R5=0000  FP=00F4* SP=00F4*
+
+[TEXT]  0x00-0x5F   19 of 96 words used
+  ADDR  HEX    LABEL    INSTRUCTION
+  00    1960   main:    LD R1, n
+  01    9900            PUSH R1
+  02    A807            CALL fact
+  03    5F01            ADDI SP, 1
+  04    2061            ST R0, result
+  05    B800            OUT R0
+  06    0000            HALT
+  07    29C2   fact:    LDR R1, [FP+2]      <- PC
+  08    7102            CMPI R1, 2
+  09    9011            JN base
+  0A    6101            SUBI R1, 1
+  0B    9900            PUSH R1
+  0C    A807            CALL fact
+  0D    5F01            ADDI SP, 1
+  0E    29C2            LDR R1, [FP+2]
+  0F    5020            MUL R0, R1
+  10    B000            RET
+  11    1001   base:    LDI R0, 1
+  12    B000            RET
+  13-5F (unused)
+
+[DATA]  0x60-0x7F   2 of 32 words used
+  ADDR  HEX    NAME     VALUE
+  60    0005   n        5
+  61    0000   result   0
+  62-7F (unused)
+
+[HEAP]  0x80-0x9F
+  (empty -- program uses no dynamic memory)
+
+[STACK] 0xA0-0xFF   12 of 96 words used   SP=F4  FP=F4   (grows down)
+  ADDR  HEX    DEC   CONTENTS              FRAME
+  F4    00F7*  247   saved FP              +-- fact(2)   <- SP, FP
+  F5    000D*   13   return addr           |
+  F6    0002*    2   arg                   +--
+  F7    00FA   250   saved FP              +-- fact(3)
+  F8    000D    13   return addr           |
+  F9    0003     3   arg                   +--
+  FA    00FD   253   saved FP              +-- fact(4)
+  FB    000D    13   return addr           |
+  FC    0004     4   arg                   +--
+  FD    0100   256   saved FP              +-- fact(5)
+  FE    0003     3   return addr           |
+  FF    0005     5   arg                   +--
+  A0-F3 (free)
+
+==============================================================================
+ AFTER CALL #5: fact(1)                                                step 27
+==============================================================================
+PC=07  IR=A807  Z=0 N=0
+R0=0000  R1=0001* R2=0000  R3=0000  R4=0000  R5=0000  FP=00F1* SP=00F1*
+
+[TEXT]  0x00-0x5F   19 of 96 words used
+  ADDR  HEX    LABEL    INSTRUCTION
+  00    1960   main:    LD R1, n
+  01    9900            PUSH R1
+  02    A807            CALL fact
+  03    5F01            ADDI SP, 1
+  04    2061            ST R0, result
+  05    B800            OUT R0
+  06    0000            HALT
+  07    29C2   fact:    LDR R1, [FP+2]      <- PC
+  08    7102            CMPI R1, 2
+  09    9011            JN base
+  0A    6101            SUBI R1, 1
+  0B    9900            PUSH R1
+  0C    A807            CALL fact
+  0D    5F01            ADDI SP, 1
+  0E    29C2            LDR R1, [FP+2]
+  0F    5020            MUL R0, R1
+  10    B000            RET
+  11    1001   base:    LDI R0, 1
+  12    B000            RET
+  13-5F (unused)
+
+[DATA]  0x60-0x7F   2 of 32 words used
+  ADDR  HEX    NAME     VALUE
+  60    0005   n        5
+  61    0000   result   0
+  62-7F (unused)
+
+[HEAP]  0x80-0x9F
+  (empty -- program uses no dynamic memory)
+
+[STACK] 0xA0-0xFF   15 of 96 words used   SP=F1  FP=F1   (grows down)
+  ADDR  HEX    DEC   CONTENTS              FRAME
+  F1    00F4*  244   saved FP              +-- fact(1)   <- SP, FP
+  F2    000D*   13   return addr           |
+  F3    0001*    1   arg                   +--
+  F4    00F7   247   saved FP              +-- fact(2)
+  F5    000D    13   return addr           |
+  F6    0002     2   arg                   +--
+  F7    00FA   250   saved FP              +-- fact(3)
+  F8    000D    13   return addr           |
+  F9    0003     3   arg                   +--
+  FA    00FD   253   saved FP              +-- fact(4)
+  FB    000D    13   return addr           |
+  FC    0004     4   arg                   +--
+  FD    0100   256   saved FP              +-- fact(5)
+  FE    0003     3   return addr           |
+  FF    0005     5   arg                   +--
+  A0-F0 (free)
+
+OUTPUT> 120
+
+==============================================================================
+ FINAL STATE (after HALT)                                              step 52
+==============================================================================
+PC=07  IR=0000  Z=0 N=0
+R0=0078* R1=0005* R2=0000  R3=0000  R4=0000  R5=0000  FP=0100* SP=0100*
+
+[TEXT]  0x00-0x5F   19 of 96 words used
+  ADDR  HEX    LABEL    INSTRUCTION
+  00    1960   main:    LD R1, n
+  01    9900            PUSH R1
+  02    A807            CALL fact
+  03    5F01            ADDI SP, 1
+  04    2061            ST R0, result
+  05    B800            OUT R0
+  06    0000            HALT
+  07    29C2   fact:    LDR R1, [FP+2]      <- PC
+  08    7102            CMPI R1, 2
+  09    9011            JN base
+  0A    6101            SUBI R1, 1
+  0B    9900            PUSH R1
+  0C    A807            CALL fact
+  0D    5F01            ADDI SP, 1
+  0E    29C2            LDR R1, [FP+2]
+  0F    5020            MUL R0, R1
+  10    B000            RET
+  11    1001   base:    LDI R0, 1
+  12    B000            RET
+  13-5F (unused)
+
+[DATA]  0x60-0x7F   2 of 32 words used
+  ADDR  HEX    NAME     VALUE
+  60    0005   n        5
+  61    0078*  result   120
+  62-7F (unused)
+
+[HEAP]  0x80-0x9F
+  (empty -- program uses no dynamic memory)
+
+[STACK] 0xA0-0xFF   0 of 96 words used   SP=100  FP=100   (grows down)
+  (empty)
+  A0-FF (free)
+
+Program halted after 52 steps.  Output: 120
