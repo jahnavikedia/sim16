@@ -356,23 +356,23 @@ void print_stack(const CPU *snap, const CPU *prev, const Program *prog)
     printf("[STACK] 0xA0-0xFF   %d of 96 words used   SP=%02X  FP=%02X   (grows down)\n",
            STACK_TOP - sp, sp, fp);
     if (sp >= STACK_TOP) {
-        printf("  (empty)\n");
-    } else {
-        walk_frames(snap, role);
-        printf("  ADDR  HEX    DEC   CONTENTS              FRAME\n");
-        for (a = (sp < STACK_BASE ? STACK_BASE : sp); a < STACK_TOP; a++) {
-            frame_column(snap, prog, role, a, frame, (int)sizeof(frame));
-            printf("  %02X    %04X%c  %3d   ", a, snap->mem[a], mem_mark(snap, prev, a),
-                   snap->mem[a]);
-            if (frame[0] == '\0') {
-                printf("%s\n", CONTENTS[role[a]]);          /* no trailing spaces */
-            } else {
-                printf("%-22s%s\n", CONTENTS[role[a]], frame);
-            }
+        printf("  (empty)\n");                  /* no rows, no "free" footer */
+        return;
+    }
+    walk_frames(snap, role);
+    printf("  ADDR  HEX    DEC   CONTENTS              FRAME\n");
+    for (a = (sp < STACK_BASE ? STACK_BASE : sp); a < STACK_TOP; a++) {
+        frame_column(snap, prog, role, a, frame, (int)sizeof(frame));
+        printf("  %02X    %04X%c  %3d   ", a, snap->mem[a], mem_mark(snap, prev, a),
+               snap->mem[a]);
+        if (frame[0] == '\0') {
+            printf("%s\n", CONTENTS[role[a]]);              /* no trailing spaces */
+        } else {
+            printf("%-22s%s\n", CONTENTS[role[a]], frame);
         }
     }
     if (sp > STACK_BASE) {
-        printf("  A0-%02X (free)\n", (sp > STACK_TOP ? STACK_TOP : sp) - 1);
+        printf("  A0-%02X (free)\n", sp - 1);   /* the unused part below SP */
     }
 }
 

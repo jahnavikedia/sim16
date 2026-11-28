@@ -34,7 +34,6 @@ R0=0000  R1=0000  R2=0000  R3=0000  R4=0000  R5=0000  FP=0100  SP=0100
 
 [STACK] 0xA0-0xFF   0 of 96 words used   SP=100  FP=100   (grows down)
   (empty)
-  A0-FF (free)
 
 ==============================================================================
 STEP 1   @00  1001  LDI R0, 1
@@ -352,6 +351,5 @@ R0=0040* R1=0002* R2=0002* R3=0008* R4=0000  R5=0000  FP=0100  SP=0100
 
 [STACK] 0xA0-0xFF   0 of 96 words used   SP=100  FP=100   (grows down)
   (empty)
-  A0-FF (free)
 
 Program halted after 20 steps.  Output: 64

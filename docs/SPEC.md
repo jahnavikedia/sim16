@@ -757,7 +757,7 @@ Every output line has trailing spaces removed (`.rstrip()`). Separator lines are
 | STACK title | `"[STACK] 0xA0-0xFF   %d of 96 words used   SP=%02X  FP=%02X   (grows down)" % (0x100 - SP, SP, FP)` (do **not** mask: SP = 0x100 prints `100`) |
 | STACK header / row | `"  ADDR  HEX    DEC   CONTENTS              FRAME"` / `"  %02X    %04X%s  %3d   %-22s%s" % (a, w, mk, w, contents, frame)` |
 | STACK frame column | first word `"+-- %s(%d)" % (name, arg)`, middle `"|"`, last `"+--"`, local `""`; if SP and/or FP point at this word: `"%-13s <- %s" % (frame, "SP, FP" / "SP" / "FP")` |
-| STACK footer | `"  A0-%02X (free)" % (SP - 1)` (omit if SP == 0xA0); empty stack: `"  (empty)"` instead of header+rows |
+| STACK footer | `"  A0-%02X (free)" % (SP - 1)` (omit if SP == 0xA0); empty stack (SP = 0x100): only `"  (empty)"`, with no header, rows or footer |
 
 ---
 
