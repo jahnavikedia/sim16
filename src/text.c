@@ -154,7 +154,7 @@ void text_append(char *dst, const char *src, int size)
 
 /*
  * text_append_int: add a decimal number to the end of dst.
- * (Our own replacement for sprintf("%d"), which is not allowed.)
+ * (Our own replacement for the sprintf function, which is not allowed.)
  */
 void text_append_int(char *dst, int value, int size)
 {
