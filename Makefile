@@ -7,7 +7,7 @@
 CC     = cc
 CFLAGS = -std=c99 -Wall -Wextra -pedantic
 
-CORE = src/text.c src/cpu.c src/loader.c
+CORE = src/text.c src/cpu.c src/loader.c src/assembler.c src/programs.c
 
 all: test_cpu
 

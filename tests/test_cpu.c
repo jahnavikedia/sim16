@@ -13,6 +13,8 @@
 #include "../src/cpu.h"
 #include "../src/loader.h"
 #include "../src/text.h"
+#include "../src/assembler.h"
+#include "../src/programs.h"
 
 /* ---- Tiny test framework ---------------------------------------------- */
 
@@ -721,6 +723,262 @@ static void test_golden_hex(void)
     run_recursive(&cpu, "(hex)");
 }
 
+/* ---- Assembler: SPEC 9.4 rows, both ways -------------------------------- */
+
+static void test_encoding_table(void)
+{
+    static const char *const ASM[24] = {
+        "HALT", "NOP", "LDI R0, 1", "LD R1, 0x60", "ST R0, 0x61", "LDR R1, [FP+2]",
+        "STR R2, [SP-1]", "MOV R1, R2", "ADD R1, R2", "SUB R1, R2", "MUL R0, R1",
+        "ADDI SP, 1", "SUBI R1, 1", "CMP R1, R2", "CMPI R1, 2", "JMP 0x04", "JZ 0x10",
+        "JNZ 0x02", "JN 0x11", "PUSH R1", "POP R2", "CALL 0x07", "RET", "OUT R0" };
+    static const unsigned short HEX[24] = {
+        0x0000, 0x0800, 0x1001, 0x1960, 0x2061, 0x29C2, 0x32FF, 0x3940,
+        0x4140, 0x4940, 0x5020, 0x5F01, 0x6101, 0x6940, 0x7102, 0x7804,
+        0x8010, 0x8802, 0x9011, 0x9900, 0xA200, 0xA807, 0xB000, 0xB800 };
+    Program prog;
+    SimError err;
+    char text[DISASM_LEN];
+    int i, ok_asm = 1, ok_dis = 1;
+
+    for (i = 0; i < 24; i++) {
+        const char *line[1];
+        line[0] = ASM[i];
+        if (assemble(line, 1, &prog, &err) != 0 || prog.text_len != 1 || prog.text[0] != HEX[i]) {
+            ok_asm = 0;
+            printf("  assemble \"%s\" != %04X\n", ASM[i], HEX[i]);
+        }
+        disassemble(HEX[i], 0, text);
+        if (!text_equal(text, ASM[i])) {
+            ok_dis = 0;
+            printf("  disassemble %04X = \"%s\", expected \"%s\"\n", HEX[i], text, ASM[i]);
+        }
+    }
+    check(ok_asm, "SPEC 9.4: all 24 rows assemble to the right hex");
+    check(ok_dis, "SPEC 9.4: all 24 rows disassemble back to the same text");
+    disassemble(0xC000, 0, text);
+    check(text_equal(text, ".word 0xC000  ; invalid"), "disassemble a reserved opcode");
+    disassemble(0x2BE0, 0, text);
+    check(text_equal(text, "LDR R3, [SP+0]"), "disassemble shows +0");
+}
+
+/* ---- Assembler: syntax rules (SPEC 3.9) --------------------------------- */
+
+static void test_syntax(void)
+{
+    static const char *const SRC[] = {
+        "; comment-only line",
+        "",
+        "start:  add r1,r2          ; lower case, no space after comma",
+        "        LDR R1, [ FP + 2 ] ; spaces inside brackets",
+        "        LDR R2, [SP]       ; no offset",
+        "        JMP done           ; forward reference",
+        "        LDI R3, 0x1F       ; hex",
+        "        LDI R4, 08         ; leading zero is decimal",
+        "        LD  R5, v",
+        "done:",
+        "        HALT",
+        ".data",
+        "v:      .word -1           ; stored as two's complement",
+        "w:      .word done         ; a label as a value",
+        "        .word 0xFFFF" };
+    static const unsigned short WANT[] = {
+        0x4140, 0x29C2, 0x2AE0, 0x7807, 0x131F, 0x1408, 0x1D60, 0x0000 };
+    Program prog;
+    SimError err;
+    int i, ok = 1;
+
+    check(assemble(SRC, 15, &prog, &err) == 0, "syntax: program assembles");
+    check(prog.text_len == 8, "syntax: 8 instructions");
+    for (i = 0; i < 8; i++) {
+        if (prog.text[i] != WANT[i]) {
+            ok = 0;
+            printf("  word %d = %04X, expected %04X\n", i, prog.text[i], WANT[i]);
+        }
+    }
+    check(ok, "syntax: case, spaces, forward label, hex, 08");
+    check(prog.data_len == 3 && prog.data[0] == 0xFFFF && prog.data[1] == 7
+          && prog.data[2] == 0xFFFF, "syntax: .word -1, .word label, .word 0xFFFF");
+    check(prog.entry == 0, "syntax: no main -> entry 0");
+    check(prog.n_symbols == 4 && prog.symbols[1].addr == 7 && prog.symbols[2].addr == 0x60,
+          "syntax: label addresses (text and data)");
+    check(prog.source_line[0] == 3 && prog.source_line[7] == 11, "syntax: source line numbers");
+}
+
+/* ---- Assembler errors (SPEC 3.8) ----------------------------------------- */
+
+/*
+ * expect_asm_error: assembling lines must fail with this kind on this line.
+ */
+static void expect_asm_error(const char *const *lines, int n, int kind, int line,
+                             const char *message)
+{
+    Program prog;
+    SimError err;
+    check(assemble(lines, n, &prog, &err) != 0 && err.kind == kind && err.line == line, message);
+}
+
+static void test_asm_errors(void)
+{
+    static const char *const MNEM[] = { "MOVE R1, R2" };
+    static const char *const UNDEF[] = { "loop: NOP", "JMP lop" };
+    static const char *const IMM[] = { "LDI R1, 300" };
+    static const char *const OFF[] = { "LDR R1, [FP+20]" };
+    static const char *const DUP[] = { "loop: NOP", "loop: NOP" };
+    static const char *const COUNT[] = { "ADD R1" };
+    static const char *const REG[] = { "PUSH R9" };
+    static const char *const WORD[] = { ".text", ".word 5" };
+    static const char *const INSTR[] = { ".data", "NOP" };
+    static const char *const RES1[] = { "add: NOP" };
+    static const char *const RES2[] = { "sp: NOP" };
+    static const char *big_text[97];
+    static const char *big_data[34];
+    Program prog;
+    SimError err;
+    int i;
+
+    expect_asm_error(MNEM, 1, ERR_UNKNOWN_MNEMONIC, 1, "line 1: unknown mnemonic 'MOVE'");
+    assemble(MNEM, 1, &prog, &err);
+    check(text_equal(err.name, "MOVE"), "unknown mnemonic keeps the name");
+    expect_asm_error(UNDEF, 2, ERR_UNDEFINED_LABEL, 2, "line 2: undefined label 'lop'");
+    expect_asm_error(IMM, 1, ERR_IMM_RANGE, 1, "line 1: immediate out of range 0..255: 300");
+    assemble(IMM, 1, &prog, &err);
+    check(err.value == 300, "immediate error keeps the value");
+    expect_asm_error(OFF, 1, ERR_OFFSET_RANGE, 1, "line 1: offset out of range -16..15: 20");
+    expect_asm_error(DUP, 2, ERR_DUPLICATE_LABEL, 2, "line 2: duplicate label 'loop'");
+    expect_asm_error(COUNT, 1, ERR_OPERAND_COUNT, 1, "line 1: expected 2 operands, got 1");
+    assemble(COUNT, 1, &prog, &err);
+    check(err.value == 2 && err.addr == 1, "operand count error keeps 2 and 1");
+    expect_asm_error(REG, 1, ERR_BAD_REGISTER, 1, "line 1: bad register 'R9'");
+    expect_asm_error(WORD, 2, ERR_WORD_IN_TEXT, 2, "line 2: .word not allowed in .text");
+    expect_asm_error(INSTR, 2, ERR_INSTR_IN_DATA, 2, "line 2: instruction not allowed in .data");
+    expect_asm_error(RES1, 1, ERR_RESERVED_LABEL, 1, "line 1: label 'add' is a reserved word");
+    expect_asm_error(RES2, 1, ERR_RESERVED_LABEL, 1, "line 1: label 'sp' is a reserved word");
+
+    for (i = 0; i < 97; i++) {
+        big_text[i] = "NOP";
+    }
+    expect_asm_error(big_text, 97, ERR_ASM_TEXT_TOO_LARGE, 0,
+                     "line 0: text segment too large: 97 words (max 96)");
+    big_data[0] = ".data";
+    for (i = 1; i < 34; i++) {
+        big_data[i] = ".word 1";
+    }
+    expect_asm_error(big_data, 34, ERR_ASM_DATA_TOO_LARGE, 0,
+                     "line 0: data segment too large: 33 words (max 32)");
+}
+
+/* ---- Assembled programs: machine code + golden runs (SPEC 9) -------------- */
+
+/*
+ * assemble_builtin: assemble a program from programs.c; 1 if ok.
+ */
+static int assemble_builtin(const char *name, Program *prog)
+{
+    const ProgramSource *src = find_program(name);
+    SimError err;
+    return src != 0 && assemble(src->lines, src->n_lines, prog, &err) == 0;
+}
+
+/*
+ * same_words: do the first n words match?
+ */
+static int same_words(const unsigned short *a, const unsigned short *b, int n)
+{
+    int i;
+    for (i = 0; i < n; i++) {
+        if (a[i] != b[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static void test_programs_in_build(void)
+{
+    int want = (ASSIGNMENT == 0) ? 3 : (ASSIGNMENT == 1 ? 2 : 1);
+    check(NUM_PROGRAMS == want, "build holds the right number of programs");
+    check((find_program("factorial") != 0) == (ASSIGNMENT != 2), "factorial only in A1 builds");
+    check((find_program("power") != 0) == (ASSIGNMENT != 2), "power only in A1 builds");
+    check((find_program("recursive") != 0) == (ASSIGNMENT != 1), "recursive only in A2 builds");
+    check(find_program("nope") == 0, "unknown program not found");
+}
+
+#if ASSIGNMENT == 0 || ASSIGNMENT == 1
+static void test_assembled_a1(void)
+{
+    Program prog;
+    CPU cpu;
+    SimError err;
+    char text[DISASM_LEN];
+
+    check(assemble_builtin("factorial", &prog), "factorial assembles");
+    check(prog.text_len == 8 && same_words(prog.text, FACTORIAL_HEX, 8),
+          "factorial: machine code = SPEC 9.1");
+    check(prog.data_len == 2 && same_words(prog.data, FACTORIAL_DATA, 2), "factorial: data");
+    check(prog.n_symbols == 4 && text_equal(prog.symbols[1].name, "loop")
+          && prog.symbols[1].addr == 2 && prog.symbols[3].addr == 0x61, "factorial: labels");
+    check(prog.source_line[0] == 5 && prog.source_line[7] == 13, "factorial: source lines");
+    disassemble(prog.text[4], &prog, text);
+    check(text_equal(text, "JNZ loop"), "factorial: JNZ loop (jump shows TEXT label)");
+    disassemble(prog.text[0], &prog, text);
+    check(text_equal(text, "LD R1, n"), "factorial: LD R1, n (address shows DATA label)");
+    disassemble(0x1900, &prog, text);
+    check(text_equal(text, "LD R1, 0x00"), "LD R1, 0x00 is not shown as main");
+    load_program(&prog, &cpu, &err);
+    cpu_run(&cpu, DEFAULT_MAX_STEPS, &err);
+    check_factorial(&cpu, "(assembled)");
+
+    check(assemble_builtin("power", &prog), "power assembles");
+    check(prog.text_len == 13 && same_words(prog.text, POWER_HEX, 13),
+          "power: machine code = SPEC 9.2");
+    check(prog.data_len == 3 && same_words(prog.data, POWER_DATA, 3), "power: data");
+    load_program(&prog, &cpu, &err);
+    cpu_run(&cpu, DEFAULT_MAX_STEPS, &err);
+    check_power(&cpu, "(assembled)");
+}
+#endif
+
+#if ASSIGNMENT == 0 || ASSIGNMENT == 2
+static void test_assembled_a2(void)
+{
+    /* SPEC 7.4 INSTRUCTION column */
+    static const char *const LISTING[19] = {
+        "LD R1, n", "PUSH R1", "CALL fact", "ADDI SP, 1", "ST R0, result", "OUT R0",
+        "HALT", "LDR R1, [FP+2]", "CMPI R1, 2", "JN base", "SUBI R1, 1", "PUSH R1",
+        "CALL fact", "ADDI SP, 1", "LDR R1, [FP+2]", "MUL R0, R1", "RET", "LDI R0, 1", "RET" };
+    static const char *const NAMES[5] = { "main", "fact", "base", "n", "result" };
+    static const int ADDRS[5] = { 0x00, 0x07, 0x11, 0x60, 0x61 };
+    Program prog;
+    CPU cpu;
+    SimError err;
+    char text[DISASM_LEN];
+    int i, ok = 1;
+
+    check(assemble_builtin("recursive", &prog), "recursive assembles");
+    check(prog.text_len == 19 && same_words(prog.text, RECURSIVE_HEX, 19),
+          "recursive: machine code = SPEC 9.3");
+    check(prog.data_len == 2 && same_words(prog.data, RECURSIVE_DATA, 2), "recursive: data");
+    for (i = 0; i < 5; i++) {
+        if (!text_equal(prog.symbols[i].name, NAMES[i]) || prog.symbols[i].addr != ADDRS[i]) {
+            ok = 0;
+        }
+    }
+    check(ok && prog.n_symbols == 5, "recursive: symbols main=00 fact=07 base=11 n=60 result=61");
+    ok = 1;
+    for (i = 0; i < 19; i++) {
+        disassemble(prog.text[i], &prog, text);
+        if (!text_equal(text, LISTING[i])) {
+            ok = 0;
+            printf("  %02X: \"%s\", expected \"%s\"\n", i, text, LISTING[i]);
+        }
+    }
+    check(ok, "recursive: disassembly = SPEC 7.4 listing");
+    load_program(&prog, &cpu, &err);
+    run_recursive(&cpu, "(assembled)");
+}
+#endif
+
 /* ---- Main --------------------------------------------------------------- */
 
 int main(void)
@@ -768,8 +1026,20 @@ int main(void)
     printf("String helpers\n");
     test_text();
 
+    printf("Assembler\n");
+    test_encoding_table();
+    test_syntax();
+    test_asm_errors();
+    test_programs_in_build();
+
     printf("Golden runs (SPEC 9)\n");
     test_golden_hex();
+#if ASSIGNMENT == 0 || ASSIGNMENT == 1
+    test_assembled_a1();
+#endif
+#if ASSIGNMENT == 0 || ASSIGNMENT == 2
+    test_assembled_a2();
+#endif
 
     printf("\n%d passed, %d failed\n", passed, failed);
     return failed == 0 ? 0 : 1;

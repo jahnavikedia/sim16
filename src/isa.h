@@ -120,7 +120,8 @@ enum {
     ERR_BAD_NUMBER,         /* bad number '<name>' */
     ERR_BAD_OPERAND,        /* bad operand '<name>' */
     ERR_BAD_DIRECTIVE,      /* unknown directive '<name>' */
-    ERR_WORD_RANGE          /* .word value out of range: <value> */
+    ERR_WORD_RANGE,         /* .word value out of range: <value> */
+    ERR_TOO_MANY_LABELS     /* too many labels (max 64) */
 };
 
 /* ---- Shared types ------------------------------------------------------ */
