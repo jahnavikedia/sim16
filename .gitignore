@@ -1,6 +1,17 @@
 # macOS
 .DS_Store
 
-# Python
-__pycache__/
-*.pyc
+# Build products (C)
+*.o
+sim16
+test_cpu
+
+# Upload packages, rebuilt by `make submit`
+submission/
+
+# Internal task file, kept local only
+docs/CLAUDE_CODE_INSTRUCTIONS.md
+
+# Report tooling scratch files
+report/build/
+report/.venv/
